@@ -80,15 +80,10 @@ curl -X POST http://127.0.0.1:5001/api/tool/describe-table/invoke \
   -H "Content-Type: application/json" \
   -d '{"table_name": "YourTableName"}'
 
-# Count rows in a table
-curl -X POST http://127.0.0.1:5001/api/tool/count-rows/invoke \
-  -H "Content-Type: application/json" \
-  -d '{"table_name": "YourTableName"}'
-
 # Run a custom query
 curl -X POST http://127.0.0.1:5001/api/tool/run-query/invoke \
   -H "Content-Type: application/json" \
-  -d '{"query": "SELECT TOP 10 * FROM YourTableName"}'
+  -d '{"sql": "SELECT TOP 10 * FROM YourTableName"}'
 ```
 
 ## Connecting Claude Code
@@ -105,6 +100,30 @@ Verify the connection:
 claude mcp list
 ```
 
+### Tool Permissions
+
+By default, Claude Code requires approval before using MCP tools. You have several options:
+
+**Interactive approval**: Claude will ask for permission before each tool use.
+
+**Pre-approve specific tools** with `--allowedTools`:
+
+```bash
+claude --allowedTools "mcp__toolbox-db__*"
+```
+
+**Skip all permission prompts** (use with caution):
+
+```bash
+claude -p "Use the list-tables tool" --dangerously-skip-permissions
+```
+
+**Quick test** to verify MCP and database connectivity:
+
+```bash
+claude -p "Use the list-tables tool to show all tables" --dangerously-skip-permissions
+```
+
 For detailed configuration options, see [docs/using-claude-code.md](docs/using-claude-code.md).
 
 ## Available Tools
@@ -115,8 +134,7 @@ The default configuration provides these tools:
 |------|-------------|
 | `list-tables` | List all user tables in the database |
 | `describe-table` | Get column details for a specific table |
-| `run-query` | Execute a SQL query |
-| `count-rows` | Count rows in a specific table |
+| `run-query` | Execute a SQL query (uses `sql` parameter) |
 
 ## Configuration
 

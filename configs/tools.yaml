@@ -39,29 +39,12 @@ tools:
       ORDER BY ORDINAL_POSITION
 
   run-query:
-    kind: mssql-sql
+    kind: mssql-execute-sql
     source: baseline-mssql
     description: Run a read-only SQL query against the database
-    parameters:
-      - name: query
-        type: string
-        description: The SQL SELECT query to execute
-    statement: "{{.query}}"
-
-  count-rows:
-    kind: mssql-sql
-    source: baseline-mssql
-    description: Count rows in a specific table
-    parameters:
-      - name: table_name
-        type: string
-        description: Name of the table to count rows from
-    statement: |
-      SELECT COUNT(*) as row_count FROM {{.table_name}}
 
 toolsets:
   default:
     - list-tables
     - describe-table
     - run-query
-    - count-rows
