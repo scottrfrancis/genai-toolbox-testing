@@ -80,10 +80,10 @@ curl -X POST http://127.0.0.1:5001/api/tool/describe-table/invoke \
   -H "Content-Type: application/json" \
   -d '{"table_name": "YourTableName"}'
 
-# Run a custom query
+# Run a custom query (uses templateParameters)
 curl -X POST http://127.0.0.1:5001/api/tool/run-query/invoke \
   -H "Content-Type: application/json" \
-  -d '{"sql": "SELECT TOP 10 * FROM YourTableName"}'
+  -d '{"query": "SELECT TOP 10 * FROM YourTableName"}'
 ```
 
 ## Connecting Claude Code
@@ -130,13 +130,46 @@ For detailed configuration options, see [docs/using-claude-code.md](docs/using-c
 
 The default configuration provides these tools:
 
-| Tool | Description |
-|------|-------------|
-| `list-tables` | List all user tables in the database |
-| `describe-table` | Get column details for a specific table |
-| `run-query` | Execute a SQL query (uses `sql` parameter) |
+| Tool | Description | Parameter |
+|------|-------------|-----------|
+| `list-tables` | List all user tables in the database | None |
+| `describe-table` | Get column details for a specific table | `table_name` (uses `@p1`) |
+| `run-query` | Execute a SQL query | `query` (uses `templateParameters`) |
 
 ## Configuration
+
+### IMPORTANT: `parameters` vs `templateParameters`
+
+genai-toolbox has **two distinct parameter mechanisms**:
+
+| Field | Syntax | Use Case | Example |
+|-------|--------|----------|---------|
+| `parameters` | `@p1`, `@Name` | SQL prepared statements (safe) | `WHERE name = @p1` |
+| `templateParameters` | `{{.variable}}` | Go template substitution | `{{.query}}` |
+
+**Common mistake:** Using `parameters` with `{{.variable}}` syntax will fail silently.
+
+```yaml
+# WRONG - will not work
+run-query:
+  parameters:
+    - name: query
+  statement: "{{.query}}"
+
+# CORRECT - use templateParameters for Go templates
+run-query:
+  templateParameters:
+    - name: query
+  statement: "{{.query}}"
+
+# CORRECT - use parameters for SQL prepared statements
+describe-table:
+  parameters:
+    - name: table_name
+  statement: "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @p1"
+```
+
+See [docs/COMPATIBILITY-REPORT.md](docs/COMPATIBILITY-REPORT.md) for details.
 
 ### Adding Custom Tools
 
@@ -220,11 +253,21 @@ Multiple origins can be comma-separated:
 --allowed-origins "https://app.example.com,https://admin.example.com"
 ```
 
+### Security Model
+
+**IMPORTANT:** genai-toolbox provides NO server-side query validation. Security depends entirely on:
+
+1. **Database user permissions** - Use a read-only user with SELECT only
+2. **SQL Server configuration** - Disable `xp_cmdshell` and other dangerous features
+3. **Network isolation** - Restrict access via VPC/firewall
+
+See [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) for detailed security guidance and tested injection results.
+
 ### Other Security Considerations
 
 - Use encrypted connections (`encrypt: true` in tools.yaml) for production databases
-- Use a read-only database user when possible
-- Prefer parameterized queries over arbitrary SQL execution
+- Use a read-only database user (required, not optional)
+- Prefer parameterized queries (`@p1`) over template substitution when possible
 - Run the container with minimal privileges
 
 ## Troubleshooting

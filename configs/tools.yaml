@@ -39,9 +39,14 @@ tools:
       ORDER BY ORDINAL_POSITION
 
   run-query:
-    kind: mssql-execute-sql
+    kind: mssql-sql
     source: baseline-mssql
     description: Run a read-only SQL query against the database
+    templateParameters:
+      - name: query
+        type: string
+        description: The SQL query to execute
+    statement: "{{.query}}"
 
 toolsets:
   default:
